@@ -1,0 +1,33 @@
+# # Use root/example as user/password credentials
+# version: '3.1'
+
+# services:
+
+#   db:
+#     image: mysql
+#     container_name: mysql_db
+#     restart: always
+#     ports:
+#       - "3307:3306"
+#     environment:
+#       MYSQL_ROOT_PASSWORD: 1234
+#       MYSQL_DATABASE: educacion
+#     volumes:
+#       - ./mysql:/var/lib/mysql
+ 
+#     # (this is just an example, not intended to be a production configuration)
+version: '3.1'
+
+services:
+  db:
+    image: postgres:latest
+    container_name: postgres_db
+    restart: always
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres  # Cambia el nombre de usuario según sea necesario
+      POSTGRES_PASSWORD: 1234  # Cambia la contraseña según sea necesario
+      POSTGRES_DB: educacion  # El nombre de la base de datos por defecto
+    volumes:
+      - ./postgres:/var/lib/postgresql/data  # Volúmenes para persistencia de datos

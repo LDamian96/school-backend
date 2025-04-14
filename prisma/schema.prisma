@@ -1,0 +1,210 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ESTUDIANTE
+  PROFESOR
+  ADMIN
+}
+
+enum Dias {
+  LUNES
+  MARTES
+  MIERCOLES
+  JUEVES
+  VIERNES
+  SABADO
+  DOMINGO
+}
+
+model User {
+  id         String      @id @default(uuid())
+  email      String      @unique
+  password   String
+  fullName   String
+  isActive   Boolean     @default(true)
+  roles      Role[]      @default([])
+  Profesor   Profesor?
+  Estudiante Estudiante?
+}
+
+model Profesor {
+  id         Int          @id @default(autoincrement())
+  userId     String       @unique // Relación con User (para autenticación)
+  nombre     String
+  apellido   String
+  phone      String? // Teléfono es opcional
+  address    String? // Dirección es opcional
+  isActive   Boolean      @default(true)
+  materias   Materia[] // Relación con las materias que enseña
+  horarios   Horario[] // Relación con los horarios que tiene asignados
+  user       User         @relation(fields: [userId], references: [id])
+  Asistencia Asistencia[]
+  sex        UserSex?
+  examenId   Int?
+  Examen     Examen[]
+  Tarea      Tarea[]
+}
+
+model Estudiante {
+  id             Int          @id @default(autoincrement())
+  userId         String       @unique // Relación con User (para autenticación)
+  nombre         String
+  apellido       String
+  gradoSeccionId Int
+  phone          String? // Teléfono es opcional
+  address        String? // Dirección es opcional
+  gradoSeccion   GradoSeccion @relation(fields: [gradoSeccionId], references: [id])
+  isActive       Boolean      @default(true)
+  user           User         @relation(fields: [userId], references: [id])
+  Examen         Examen[]
+  Asistencia     Asistencia[]
+  Tarea          Tarea[]
+  sex            UserSex?
+}
+
+enum Nivel {
+  PRIMARIA
+  SECUNDARIA
+}
+
+model GradoSeccion {
+  id                  Int                   @id @default(autoincrement())
+  grado               String
+  seccion             String
+  nivel               Nivel
+  estudiantes         Estudiante[]
+  horarios            Horario[]
+  Examen              Examen[]
+  Tarea               Tarea[]
+  HabilidadEvaluacion HabilidadEvaluacion[]
+  Asistencia          Asistencia[]
+  Trimestre           Trimestre[]
+  Materia             Materia[]
+}
+
+model Materia {
+  id             Int          @id @default(autoincrement())
+  nombre         String
+  profesores     Profesor[] // Relación con los profesores que la enseñan
+  horarios       Horario[] // Relación con los horarios
+  Examen         Examen[]
+  gradoSeccionId Int? // <--- Valor predeterminado TEMPORAL
+  gradoSeccion   GradoSeccion? @relation(fields: [gradoSeccionId], references: [id])
+
+  HabilidadEvaluacion HabilidadEvaluacion[]
+  Tarea               Tarea[]
+  Asistencia          Asistencia[]
+}
+
+model Horario {
+  id             Int          @id @default(autoincrement())
+  dia            Dias // Día de la semana (ejemplo: "Lunes", "Martes")
+  hora_inicio    DateTime // Hora de inicio
+  hora_fin       DateTime // Hora de fin
+  gradoSeccionId Int
+  gradoSeccion   GradoSeccion @relation(fields: [gradoSeccionId], references: [id])
+  materiaId      Int
+  materia        Materia      @relation(fields: [materiaId], references: [id])
+  profesorId     Int
+  profesor       Profesor     @relation(fields: [profesorId], references: [id])
+  Examen         Examen[]
+}
+
+model Examen {
+  id             Int          @id @default(autoincrement())
+  nota           String?
+  nombre         String
+  fecha          DateTime // Fecha del examen
+  materiaId      Int
+  materia        Materia      @relation(fields: [materiaId], references: [id])
+  estudianteId   Int?
+  estudiante     Estudiante?  @relation(fields: [estudianteId], references: [id])
+  horarioId      Int? // Relación opcional con Horario
+  horario        Horario?     @relation(fields: [horarioId], references: [id])
+  gradoSeccionId Int
+  gradoSeccion   GradoSeccion @relation(fields: [gradoSeccionId], references: [id])
+  profesorId     Int?
+  profesores     Profesor?    @relation(fields: [profesorId], references: [id])
+
+  Trimestre   Trimestre? @relation(fields: [trimestreId], references: [id])
+  trimestreId Int?
+}
+
+model HabilidadEvaluacion {
+  id Int @id @default(autoincrement())
+
+  habilidad1 String // Descripción de la habilidad 1
+
+  promedio       Float?
+  materia        Materia?     @relation(fields: [materiaId], references: [id])
+  materiaId      Int?
+  gradoSeccionId Int // Relación con GradoSeccion
+  gradoSeccion   GradoSeccion @relation(fields: [gradoSeccionId], references: [id])
+  nivel          Nivel
+  Trimestre      Trimestre?   @relation(fields: [trimestreId], references: [id])
+  trimestreId    Int?
+}
+
+model Asistencia {
+  id             Int          @id @default(autoincrement())
+  estado         String // Estado de la asistencia (ejemplo: "Asistió", "No Asistió")
+  fecha          DateTime // Fecha de la asistencia
+  estudianteId   Int?
+  estudiante     Estudiante?  @relation(fields: [estudianteId], references: [id])
+  gradoSeccionId Int // Relación con GradoSección
+  gradoSeccion   GradoSeccion @relation(fields: [gradoSeccionId], references: [id])
+  materiaId      Int? // Relación con Materia (Curso)
+  materia        Materia?     @relation(fields: [materiaId], references: [id])
+  profesorId     Int? // Relación opcional con Profesor
+  profesor       Profesor?    @relation(fields: [profesorId], references: [id])
+  Trimestre      Trimestre?   @relation(fields: [trimestreId], references: [id])
+  trimestreId    Int?
+  asistio        Boolean?
+}
+
+model Tarea {
+  id             Int          @id @default(autoincrement())
+  descripcion    String // Descripción de la tarea
+  fechaEntrega   DateTime // Fecha de entrega
+  calificacion   String? // Nota de la tarea
+  estudianteId   Int?
+  entrego        Boolean?
+  estudiante     Estudiante?  @relation(fields: [estudianteId], references: [id])
+  gradoSeccionId Int // Relación con GradoSeccion
+  gradoSeccion   GradoSeccion @relation(fields: [gradoSeccionId], references: [id])
+  materiaId      Int
+  materia        Materia      @relation(fields: [materiaId], references: [id])
+  Trimestre      Trimestre?   @relation(fields: [trimestreId], references: [id])
+  trimestreId    Int?
+  profesorId     Int?
+  profesores     Profesor?    @relation(fields: [profesorId], references: [id])
+}
+
+model Trimestre {
+  id             Int                   @id @default(autoincrement())
+  trimestre      String // Nombre del trimestre (Ejemplo: "Primer Trimestre")
+  gradoSeccionId Int?
+  gradoSeccion   GradoSeccion?         @relation(fields: [gradoSeccionId], references: [id]) // Relación con Grado y Sección
+  examen         Examen[] // Relación con Exámenes
+  habilidad      HabilidadEvaluacion[] // Relación con Habilidades Evaluadas
+  tarea          Tarea[] // Relación con Tareas
+  asistencia     Asistencia[] // Relación con Asistencias
+}
+
+enum UserSex {
+  MALE
+  FEMALE
+}
